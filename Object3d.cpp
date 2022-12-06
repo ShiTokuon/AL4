@@ -332,7 +332,7 @@ void Object3d::LoadTexture()
 	ScratchImage scratchImg{};
 
 	// WICテクスチャのロード
-	result = LoadFromWICFile(L"Resources/tex1.png", WIC_FLAGS_NONE, &metadata, scratchImg);
+	result = LoadFromWICFile(L"Resources/texture.png", WIC_FLAGS_NONE, &metadata, scratchImg);
 	assert(SUCCEEDED(result));
 
 	ScratchImage mipChain{};
@@ -404,12 +404,12 @@ void Object3d::CreateModel()
 
 	std::ifstream file;
 
-	file.open("Resources/triangle.obj");
+	file.open("Resources/triangle_tex/triangle_tex.obj");
 	assert(!file.fail());
 
 	vector<XMFLOAT3> positions;
-	vector<XMFLOAT3> nomals;
-	vector<XMFLOAT3> texcoords;
+	vector<XMFLOAT3> normals;
+	vector<XMFLOAT2> texcoords;
 
 	string line;
 	while (getline(file, line)) {
@@ -427,9 +427,9 @@ void Object3d::CreateModel()
 
 			positions.emplace_back(position);
 
-			VertexPosNormalUv vertex{};
-			vertex.pos = position;
-			vertices.emplace_back(vertex);
+			//VertexPosNormalUv vertex{};
+			//vertex.pos = position;
+			//vertices.emplace_back(vertex);
 		}
 
 		if (key == "f") {
@@ -437,11 +437,40 @@ void Object3d::CreateModel()
 			string index_string;
 			while (getline(line_stream, index_string, ' ')) {
 				std::istringstream index_stream(index_string);
-				unsigned short indexPosition;
+				unsigned short indexPosition, indexNormal, indexTexcoord;
 				index_stream >> indexPosition;
+				index_stream.seekg(1, ios_base::cur);
+				index_stream >> indexTexcoord;
+				index_stream.seekg(1, ios_base::cur);
+				index_stream >> indexNormal;
 
-				indices.emplace_back(indexPosition - 1);
+				VertexPosNormalUv vertex{};
+				vertex.pos = positions[indexPosition - 1];
+				vertex.normal = normals[indexNormal - 1];
+				vertex.uv = texcoords[indexTexcoord - 1];
+				vertices.emplace_back(vertex);
+				indices.emplace_back((unsigned short)indices.size());
+				//indices.emplace_back(indexPosition - 1);
 			}
+		}
+
+		if (key == "vt") {
+			XMFLOAT2 texcoord{};
+			line_stream >> texcoord.x;
+			line_stream >> texcoord.y;
+
+			texcoord.y = 1.0f - texcoord.y;
+
+			texcoords.emplace_back(texcoord);
+		}
+
+		if (key == "vn") {
+			XMFLOAT3 normal{};
+			line_stream >> normal.x;
+			line_stream >> normal.y;
+			line_stream >> normal.z;
+
+			normals.emplace_back(normal);
 		}
 	}
 	file.close();
